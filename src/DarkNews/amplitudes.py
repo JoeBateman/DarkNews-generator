@@ -1,14 +1,14 @@
 import numpy as np
 
+import logging
+logger = logging.getLogger('logger.' + __name__)
+
 from DarkNews import const
 from DarkNews.const import Sqrt, MZBOSON, eQED
 
-from DarkNews import logger
-
-
 def upscattering_dxsec_dQ2(x_phase_space, process, diagrams=["total"]):
     """ 
-    Computes the differential cross section for upscattering in attobarns
+    Computes the differential cross section for upscattering in cm2
 
     Args:
         x_phase_space (list): a list of arrays with [s,t,u] variables
@@ -39,7 +39,7 @@ def upscattering_dxsec_dQ2(x_phase_space, process, diagrams=["total"]):
         ValueError: if HNL type not recognized
 
     Returns:
-        numpy.ndarray or dict: either an array with the differential xsec in attobarns at each phase-space point 
+        numpy.ndarray or dict: either an array with the differential xsec in cm2 at each phase-space point 
                 or a dictioary of such values for each diagram.
     """
 
@@ -99,7 +99,7 @@ def upscattering_dxsec_dQ2(x_phase_space, process, diagrams=["total"]):
     Tij = process.Tij
     # Tji = process.Tji
     # legacy!
-    mu_tr = process.Tij
+    dip = process.Tij
 
     h = process.h_upscattered
 
@@ -496,7 +496,7 @@ def upscattering_dxsec_dQ2(x_phase_space, process, diagrams=["total"]):
         # transition magnetic moment
         def Lmunu_Hmunu_TMM_SQR():
             return (
-                (mu_tr) ** (2)
+                (dip) ** (2)
                 * (eQED) ** (2)
                 * (M) ** (-2)
                 * (((M) ** (4) + ((((mHNL) ** (2) + -1 * s)) ** (2) + -2 * (M) ** (2) * ((mHNL) ** (2) + s)))) ** (-1 / 2)
@@ -1215,7 +1215,7 @@ def upscattering_dxsec_dQ2(x_phase_space, process, diagrams=["total"]):
     spin_average = 1 / 2
 
     # final prefactor: dsigma = prefactor*LmunuHmunu
-    prefactor = flux_factor * phase_space * physical_jacobian * spin_average * const.invGeV2_to_attobarn
+    prefactor = flux_factor * phase_space * physical_jacobian * spin_average * const.invGeV2_to_attobarn * const.attobarn_to_cm2
 
     # from amplitude to diff xsec:
     diff_xsec_terms = {}

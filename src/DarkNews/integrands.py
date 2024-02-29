@@ -2,13 +2,15 @@ import numpy as np
 import vegas as vg
 from collections import OrderedDict
 
-from DarkNews import logger, prettyprinter
+import logging
+logger = logging.getLogger('logger.' + __name__)
+prettyprinter = logging.getLogger('prettyprinter.' + __name__)
 
 from DarkNews import Cfourvec as Cfv
-from DarkNews import const
 from DarkNews import phase_space
 from DarkNews import decay_rates as dr
 from DarkNews import amplitudes as amps
+from DarkNews import processes as proc
 
 
 class UpscatteringXsec(vg.BatchIntegrand):
@@ -97,6 +99,172 @@ class UpscatteringXsec(vg.BatchIntegrand):
 
         return self.int_dic
 
+class HNLDecay(vg.BatchIntegrand):
+    def __init__(self, dim, dec_case, diagram="total"):
+        """
+        Vegas integrand for diff decay width of HNL decay.
+
+        Args:
+                dim (int): integration dimensions
+                dec_case (DarkNews.processes.DecayProcess): the decay class of DarkNews
+                diagram (str, optional): _description_. Defaults to 'total'.
+
+        Raises:
+                ValueError: if cannot find diagrams to be computed
+        """
+        self.dim = dim
+        self.decay_case = dec_case
+        self.diagram = diagram
+        if not isinstance(self.diagram, str):
+            logger.error(f"ERROR. Cannot calculate total decay width for more than one diagram at a time. Passed diagram={self.diagram}.")
+            raise ValueError
+
+        self.norm = {}
+        if type(self.decay_case) == proc.FermionDileptonDecay:
+            if (self.decay_case.scalar_on_shell and self.decay_case.vector_off_shell)\
+                or (self.decay_case.scalar_off_shell and self.decay_case.vector_on_shell):
+                self.norm["diff_decay_rate_0"] = 1
+                self.norm["diff_decay_rate_1"] = 1
+            elif self.decay_case.scalar_off_shell and self.decay_case.vector_off_shell:
+                self.norm["diff_decay_rate_0"] = 1
+            else:
+                raise NotImplementedError("Both mediators on shell not yet implemented.")
+        elif type(self.decay_case) == proc.FermionSinglePhotonDecay:
+            self.norm["diff_decay_rate_0"] = 1
+        else:
+            logger.error("ERROR: Could not determine decay process in vegas integral.")
+            raise ValueError
+
+        # normalize integrand with an initial throw
+        logger.debug("Throwing an initial 10000 random points to find the normalization")
+        _throw = self.__call__(np.random.rand(self.dim, 10_000), np.ones((self.dim, 10_000)))
+        logger.debug("Throwing successful")
+        for key, val in _throw.items():
+            self.norm[key] = np.mean(val)
+            # cannot normalize zero integrand
+            if self.norm[key] == 0:
+                self.norm[key] = 1
+
+    def __call__(self, x, jac):
+
+        self.int_dic = OrderedDict()
+
+        m_parent = self.decay_case.m_parent
+        m_daughter = self.decay_case.m_daughter
+
+        i_var = 0
+
+        ##############################################
+        if type(self.decay_case) == proc.FermionDileptonDecay:
+
+            if self.decay_case.vector_on_shell and self.decay_case.scalar_on_shell:
+                logger.error("Vector and scalar simultaneously on shell is not implemented.")
+                raise NotImplementedError("Feature not implemented.")
+
+            elif self.decay_case.vector_on_shell and self.decay_case.scalar_off_shell:
+                # decay nu_parent -> nu_daughter mediator
+                # angle between nu_daughter and z axis
+                cost = -1.0 + (2.0) * x[:, i_var]
+                i_var += 1
+
+                self.int_dic["diff_decay_rate_0"] = dr.diff_gamma_Ni_to_Nj_V(
+                    cost=cost, vertex_ij=self.decay_case.Dih, mi=m_parent, mj=m_daughter, mV=self.decay_case.mzprime, HNLtype=self.decay_case.HNLtype, h=self.decay_case.h_parent,
+                )
+                self.int_dic["diff_decay_rate_0"] *= 2  # hypercube jacobian
+
+
+                # mediator decay M --> ell+ ell-
+                self.int_dic["diff_decay_rate_1"] = dr.gamma_V_to_ell_ell(vertex=self.decay_case.TheoryModel.deV, mV=self.decay_case.mzprime, m_ell=self.decay_case.mm) * np.full_like(
+                    self.int_dic["diff_decay_rate_0"], 1.0
+                )
+
+            elif self.decay_case.vector_off_shell and self.decay_case.scalar_on_shell:
+                # decay nu_parent -> nu_daughter mediator
+                # angle between nu_daughter and z axis
+                cost = -1.0 + (2.0) * x[:, i_var]
+                i_var += 1
+
+                self.int_dic["diff_decay_rate_0"] = dr.diff_gamma_Ni_to_Nj_S(
+                    cost=cost, vertex_ij=self.decay_case.Sih, mi=m_parent, mj=m_daughter, mS=self.decay_case.mhprime, HNLtype=self.decay_case.HNLtype, h=self.decay_case.h_parent,
+                )
+                self.int_dic["diff_decay_rate_0"] *= 2  # hypercube jacobian
+
+                ##############################################
+                # mediator decay M --> ell+ ell-
+                self.int_dic["diff_decay_rate_1"] = dr.gamma_S_to_ell_ell(vertex=self.decay_case.TheoryModel.deS, mS=self.decay_case.mhprime, m_ell=self.decay_case.mm) * np.full_like(
+                    self.int_dic["diff_decay_rate_0"], 1.0
+                )
+
+            elif self.decay_case.vector_off_shell and self.decay_case.scalar_off_shell:
+                ##############################################
+                # decay nu_parent -> nu_daughter ell+ ell-
+
+                m1 = self.decay_case.m_parent
+                m2 = self.decay_case.mm
+                m3 = self.decay_case.mp
+                m4 = self.decay_case.m_daughter
+                masses = np.array([m1, m2, m3, m4])
+
+                # limits
+                tmax = phase_space.three_body_tmax(*masses)
+                tmin = phase_space.three_body_tmin(*masses)
+                t = (tmax - tmin) * x[:, i_var] + tmin
+                i_var += 1
+
+                umax = phase_space.three_body_umax(*masses, t)
+                umin = phase_space.three_body_umin(*masses, t)
+                u = (umax - umin) * x[:, i_var] + umin
+                i_var += 1
+
+                v = np.sum(masses ** 2) - u - t
+
+                c3 = (2.0) * x[:, i_var] - 1.0
+                i_var += 1
+                phi34 = (2.0 * np.pi) * x[:, i_var]
+                i_var += 1
+
+                dgamma = dr.diff_gamma_Ni_to_Nj_ell_ell([t, u, v, c3, phi34], self.decay_case)
+
+                # hypercube jacobian (vegas hypercube --> physical limits) transformation
+                dgamma *= tmax - tmin
+                dgamma *= umax - umin
+                dgamma *= 2  # c3
+                dgamma *= 2 * np.pi  # phi34
+                self.int_dic["diff_decay_rate_0"] = dgamma
+            else:
+                logger.error("Could not find decay integrand.")
+                raise ValueError("Integrand not found for this model.")
+
+        elif  type(self.decay_case) == proc.FermionSinglePhotonDecay:
+            ##############################################
+            # decay nu_parent -> nu_daughter gamma
+
+            # angle between nu_daughter and z axis
+            cost = -1.0 + (2.0) * x[:, i_var]
+            i_var += 1
+
+            self.int_dic["diff_decay_rate_0"] = dr.diff_gamma_Ni_to_Nj_gamma(
+                cost=cost, vertex_ij=self.decay_case.Tih, mi=m_parent, mj=m_daughter, HNLtype=self.decay_case.HNLtype, h=self.decay_case.h_parent,
+            )
+
+            # hypercube jacobian (vegas hypercube --> physical limits) transformation
+            self.int_dic["diff_decay_rate_0"] *= 2
+
+        else:
+            logger.error("Could not find decay integrand.")
+            raise ValueError("Integrand not found for this model.")
+
+
+        ##############################################
+        # storing normalization factor that guarantees that integrands are O(1) numbers
+        # normalize integrands to be O(1)
+        for k in self.norm.keys():
+            self.int_dic[k] /= self.norm[k]
+        logger.debug(f"Normalization factors in integrand: {self.norm}.")
+
+        # return all differential quantities of interest
+        return self.int_dic
+        
 
 class UpscatteringHNLDecay(vg.BatchIntegrand):
     def __init__(self, dim, Emin, Emax, MC_case):
@@ -202,7 +370,6 @@ class UpscatteringHNLDecay(vg.BatchIntegrand):
                     cost=cost, vertex_ij=decay_case.Dih, mi=m_parent, mj=m_daughter, mV=decay_case.mzprime, HNLtype=decay_case.HNLtype, h=decay_case.h_parent,
                 )
                 self.int_dic["diff_decay_rate_0"] *= 2  # hypercube jacobian
-
 
                 # mediator decay M --> ell+ ell-
                 self.int_dic["diff_decay_rate_1"] = dr.gamma_V_to_ell_ell(vertex=decay_case.TheoryModel.deV, mV=decay_case.mzprime, m_ell=decay_case.mm) * np.full_like(
@@ -311,13 +478,13 @@ class UpscatteringHNLDecay(vg.BatchIntegrand):
         return self.int_dic
 
 
-def get_momenta_from_vegas_samples(vsamples=None, MC_case=None):
+def get_momenta_from_vegas_samples(vsamples, MC_case):
     """
     Construct the four momenta of all particles in the upscattering+decay process from the
     vegas weights.
 
     Args:
-            vsamples (np.ndarray, optional): integration samples obtained from vegas
+            vsamples (np.ndarray): integration samples obtained from vegas
                             as hypercube coordinates. Always in the interval [0,1].
 
             MC_case (DarkNews.MC.MC_events): the main Monte-Carlo class of DarkNews
@@ -331,8 +498,9 @@ def get_momenta_from_vegas_samples(vsamples=None, MC_case=None):
     four_momenta = {}
 
     ########################
-    ### upscattering
+    # upscattering
     # Ni(k1) target(k2) -->  Nj(k3) target(k4)
+
     mh = MC_case.ups_case.m_ups
     MA = MC_case.ups_case.MA
 
@@ -360,7 +528,7 @@ def get_momenta_from_vegas_samples(vsamples=None, MC_case=None):
     four_momenta["P_recoil"] = P4LAB
 
     #######################
-    # DECAY PROCESSES
+    # decay processes
 
     if MC_case.decays_to_dilepton:
 
@@ -378,8 +546,9 @@ def get_momenta_from_vegas_samples(vsamples=None, MC_case=None):
                 raise NotImplementedError("Both mediators on-shell is not yet implemented.")
 
             ########################
-            ### HNL decay
+            # HNL decay
             N_decay_samples = {"unit_cost": np.array(vsamples[2])}
+            
             # Ni (k1) --> Nj (k2)  Z' (k3)
             masses_decay = {
                 "m1": mh,  # Ni
@@ -397,7 +566,8 @@ def get_momenta_from_vegas_samples(vsamples=None, MC_case=None):
             }
 
             ########################
-            ### Z' decay
+            # Z' decay
+
             Z_decay_samples = {}  # all uniform
             # Z'(k1) --> ell- (k2)  ell+ (k3)
             masses_decay = {
@@ -444,8 +614,141 @@ def get_momenta_from_vegas_samples(vsamples=None, MC_case=None):
         mf = MC_case.decay_case.m_daughter
 
         ########################
-        ### HNL decay
+        # HNL decay
         N_decay_samples = {"unit_cost": np.array(vsamples[2])}
+
+        # Ni (k1) --> Nj (k2)  gamma (k3)
+        masses_decay = {
+            "m1": mh,  # Ni
+            "m2": mf,  # Nj
+            "m3": 0.0,  # gamma
+        }
+        # Phnl, Phnl', Pgamma
+        P1LAB_decay, P2LAB_decay, P3LAB_decay = phase_space.two_body_decay(N_decay_samples, boost=boost_scattered_N, **masses_decay)
+
+        four_momenta["P_decay_N_parent"] = P1LAB_decay
+        four_momenta["P_decay_N_daughter"] = P2LAB_decay
+        four_momenta["P_decay_photon"] = P3LAB_decay
+
+    return four_momenta
+
+def get_decay_momenta_from_vegas_samples(vsamples, decay_case, PN_LAB):
+    """
+    Construct the four momenta of all final state particles in the decay process from the
+    vegas weights.
+
+    Args:
+            vsamples (np.ndarray): integration samples obtained from vegas
+                            as hypercube coordinates. Always in the interval [0,1].
+
+            MC_case (DarkNews.process.dec_case): the decay class of DarkNews
+
+            PN_LAB (np.ndarray): four-momentum of the upscattered N in the lab frame: [E, pX, pY, pZ]
+
+    Returns:
+            dict: each key corresponds to a set of four momenta for a given particle involved,
+                    so the values are 2D np.ndarrays with each row a different event and each column a different
+                    four momentum component. Contains also the weights.
+    """
+
+    four_momenta = {}
+
+    # N boost parameters
+    boost_scattered_N = {
+        "EP_LAB": PN_LAB.T[0],
+        "costP_LAB": Cfv.get_cosTheta(PN_LAB),
+        "phiP_LAB": np.arctan2(PN_LAB.T[2], PN_LAB.T[1]),
+    }
+
+    #######################
+    # DECAY PROCESSES
+
+    if type(decay_case) == proc.FermionDileptonDecay:
+
+        mh = decay_case.m_parent
+        mf = decay_case.m_daughter
+        mm = decay_case.mm
+        mp = decay_case.mm
+
+        if decay_case.vector_on_shell or decay_case.scalar_on_shell:
+
+            if decay_case.vector_on_shell and decay_case.scalar_off_shell:
+                m_mediator = decay_case.mzprime
+            elif decay_case.vector_off_shell and decay_case.scalar_on_shell:
+                m_mediator = decay_case.mhprime
+            else:
+                raise NotImplementedError("Both mediators on-shell is not yet implemented.")
+
+            ########################
+            ### HNL decay
+            N_decay_samples = {"unit_cost": np.array(vsamples[0])}
+            # Ni (k1) --> Nj (k2)  Z' (k3)
+            masses_decay = {
+                "m1": mh,  # Ni
+                "m2": mf,  # Nj
+                "m3": m_mediator,  # Z'
+            }
+            # Phnl, Phnl_daughter, Pz'
+            P1LAB_decay, P2LAB_decay, P3LAB_decay = phase_space.two_body_decay(N_decay_samples, boost=boost_scattered_N, **masses_decay)
+
+            # Z' boost parameters
+            boost_Z = {
+                "EP_LAB": P3LAB_decay.T[0],
+                "costP_LAB": Cfv.get_cosTheta(P3LAB_decay),
+                "phiP_LAB": np.arctan2(P3LAB_decay.T[2], P3LAB_decay.T[1]),
+            }
+
+            ########################
+            ### Z' decay
+            Z_decay_samples = {}  # all uniform
+            # Z'(k1) --> ell- (k2)  ell+ (k3)
+            masses_decay = {
+                "m1": m_mediator,  # Ni
+                "m2": mp,  # \ell+
+                "m3": mm,  # \ell-
+            }
+            # PZ', pe-, pe+
+            P1LAB_decayZ, P2LAB_decayZ, P3LAB_decayZ = phase_space.two_body_decay(Z_decay_samples, boost=boost_Z, **masses_decay)
+
+            four_momenta["P_decay_N_parent"] = P1LAB_decay
+            four_momenta["P_decay_N_daughter"] = P2LAB_decay
+            four_momenta["P_decay_ell_minus"] = P2LAB_decayZ
+            four_momenta["P_decay_ell_plus"] = P3LAB_decayZ
+
+        elif decay_case.vector_off_shell and decay_case.scalar_off_shell:
+
+            ########################
+            # HNL decay
+            N_decay_samples = {
+                "unit_t": vsamples[0],
+                "unit_u": vsamples[1],
+                "unit_c3": vsamples[2],
+                "unit_phi34": vsamples[3],
+            }
+
+            # Ni (k1) --> ell-(k2)  ell+(k3)  Nj(k4)
+            masses_decay = {
+                "m1": mh,  # Ni
+                "m2": mm,  # ell-
+                "m3": mp,  # ell+
+                "m4": mf,
+            }  # Nj
+            # Phnl, pe-, pe+, pnu
+            (P1LAB_decay, P2LAB_decay, P3LAB_decay, P4LAB_decay,) = phase_space.three_body_decay(N_decay_samples, boost=boost_scattered_N, **masses_decay)
+
+            four_momenta["P_decay_N_parent"] = P1LAB_decay
+            four_momenta["P_decay_ell_minus"] = P2LAB_decay
+            four_momenta["P_decay_ell_plus"] = P3LAB_decay
+            four_momenta["P_decay_N_daughter"] = P4LAB_decay
+
+    elif type(decay_case) == proc.FermionSinglePhotonDecay:
+
+        mh = decay_case.m_parent
+        mf = decay_case.m_daughter
+
+        ########################
+        ### HNL decay
+        N_decay_samples = {"unit_cost": np.array(vsamples[0])}
         # Ni (k1) --> Nj (k2)  gamma (k3)
         masses_decay = {
             "m1": mh,  # Ni
