@@ -167,3 +167,9 @@ muboone_analysis.ipynb
 
 # __TEST files
 **/__TEST*.py
+
+# Test folder
+test/
+
+# Old Examples
+old_examples/
