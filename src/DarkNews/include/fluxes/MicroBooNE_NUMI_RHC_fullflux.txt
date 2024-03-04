@@ -1,0 +1,3 @@
+# MicroBooNE NuMI flux (from https://arxiv.org/abs/2101.04228)
+# scaled to nu/POT/bin/cm2 
+# Energy   [GeV]    nue     numu    nuebar  numubar
