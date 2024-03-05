@@ -1,0 +1,228 @@
+# This is a template file to specify the parameters for the generator.
+# It should be provided as the argument `param_file` of `GenLauncher` or via the option `--param-file` of the command line interface.
+# 
+# In the following there are the main rules to specify the parameters:
+# * every line should be in the form of an assignment statement
+# ```rst
+# <variable_name> = <variable_value>
+# ```
+# * comments can be specified with with '#'
+# * the different parameters can be specified with:
+#     * string: by encapsulating each string with double or single quotes `"<string>"` or `'<string>'` are equivalent, the escape character is `\` (backslash).
+#     * booleans: by writing `True` or `False` (it is case insensitive)
+#     * mathematical expression (which will results in `float` or `int` numbers): see section below
+#     * lists: by encapsulating them into square brackets, separating each element with a comma; elements can be string, numbers, mathematical expressions or all of them together.
+# * When using mathematical expression, the following rules should be applied:
+#     * numbers can be specified as usual: `5` is integer, `5.0` is float (but `5.` will result in an error), `5e10` is the float number 5*10^10
+#     * `+`, `-`, `*`, `/` are the usual mathematical operators
+#     * `^` is used to make powers (do not use `**`)
+#     * it is possible to use round brackets `(` and `)`
+#     * `e` (case-insensitive, isolated: not inside float numbers) is understood as python `math.e = 2.718281828`
+#     * `pi` (case-insensitive) is understood as `math.pi = 3.1415926535`
+#     * `sin(<expr>)`, `cos(<expr>)`, `tan(<expr>)` are the usual trigonometric functions
+#     * `exp(<expr>)` is the usual exponentiation
+#     * `abs(<expr>)` is the absolute value
+#     * `sgn(<expr>) = -1` if `<expr> < -1e-100`, `+1` if `<expr> > 1e-100`, `0` otherwise
+#     * `trunc(<expr>)` returns the truncated float `<expr>` to integer
+#     * `round(<expr>)` is the integer part of the float number `<expr>`
+#     * `sum(<list of expr>)` will sum each element of the list, returning a float number
+#     * any other string is intended as a variable which must have been previously defined (the file is scanned from top to bottom)
+#     * in general it is possible to define any kind of variable, independently on those that will be actually used by the program, following the usual conventions for the variable name (use only letters, digits and underscores). Moreover, it's not possible to name variables after program-defined names, as for example the name of the functions.
+# 
+# #### Example 1
+# The following lines
+# ```rst
+# hbar = 6.582119569e-25 # GeV s
+# c = 299792458.0 # m s^-1
+# ```
+# will define two variables, named `hbar` and `c` with their values.
+# 
+# #### Example 2
+# It is possible to write
+# ```rst
+# a_certain_constant = hbar * c
+# ```
+# to define a variable named `a_certain_constant` with the value of the product between the pre-defined `hbar` and `c` variables from the example above.
+# 
+# #### Example 3
+# There is the freedom to write any kind of possible expression, for example
+# ```rst
+# a_variable = c^2 * 3.2e-4 / sin(PI/7) + 12 * exp( -2 * abs(hbar) )
+# ```
+# obtaining a new variable `a_variable` with the value of 66285419633555.3
+# 
+# #### Example 4
+# The line
+# ```rst
+# path = "my_directory/projects/this_project"
+# ```
+# defines the `path` variable, stored as the string `"my_directory/projects/this_project"`.
+# 
+# #### Example 5
+# The following lines are defining booleans (they are case insensitive), used to set the various switches:
+# ```rst
+# pandas = True
+# numpy = false
+# ```
+
+# ---------------------------------------------------------------------------
+# MODEL PARAMETERS
+# ---------------------------------------------------------------------------
+hbar = 6.582119569e-25 # GeV s
+c = 299792458.0 # m s^-1
+
+##############################
+### COMMON ARGS
+##############################
+# m4 = 
+# m5 = 
+# m6 = 
+# mzprime = 
+# HNLtype = 
+# mu_tr_e4 = 
+# mu_tr_e5 = 
+# mu_tr_e6 = 
+# mu_tr_mu4 = 
+# mu_tr_mu5 = 
+# mu_tr_mu6 = 
+# mu_tr_tau4 = 
+# mu_tr_tau5 = 
+# mu_tr_tau6 = 
+# mu_tr_44 = 
+# mu_tr_45 = 
+# mu_tr_46 = 
+# mu_tr_55 = 
+# mu_tr_56 = 
+# s_e4 = 
+# s_e5 = 
+# s_e6 = 
+# s_mu4 = 
+# s_mu5 = 
+# s_mu6 = 
+# s_tau4 = 
+# s_tau5 = 
+# s_tau6 = 
+# s_44 = 
+# s_45 = 
+# s_46 = 
+# s_55 = 
+# s_56 = 
+# s_66 = 
+# mhprime = 
+# theta = 
+# decay_product = 
+# experiment = 
+# nopelastic = 
+# nocoh = 
+# noHC = 
+# noHF = 
+# nu_flavors = 
+# loglevel = 
+# verbose = 
+# logfile = 
+# neval = 
+# nint = 
+# neval_warmup = 
+# nint_warmup = 
+# pandas = 
+# parquet = 
+# numpy = 
+# hepevt = 
+# hepevt_legacy = 
+# hepmc2 = 
+# hepmc3 = 
+# hep_unweight = 
+# unweighted_hep_events = 
+# sparse = 
+# print_to_float32 = 
+# sample_geometry = 
+# make_summary_plots = 
+# path = 
+# seed = 
+# enforce_prompt = 
+
+##############################
+### 3-PORTAL ARGS
+##############################
+# gD = 
+# epsilon = 
+# alphaD = 
+# epsilon2 = 
+# chi = 
+# alpha_epsilon2 = 
+# Ue4 = 
+# Ue5 = 
+# Ue6 = 
+# Umu4 = 
+# Umu5 = 
+# Umu6 = 
+# Utau4 = 
+# Utau5 = 
+# Utau6 = 
+# UD4 = 
+# UD5 = 
+# UD6 = 
+
+##############################
+### GENERIC MODEL ARGS
+##############################
+# c_e4 = 
+# c_e5 = 
+# c_e6 = 
+# c_mu4 = 
+# c_mu5 = 
+# c_mu6 = 
+# c_tau4 = 
+# c_tau5 = 
+# c_tau6 = 
+# c_44 = 
+# c_45 = 
+# c_46 = 
+# c_55 = 
+# c_56 = 
+# c_66 = 
+# d_e4 = 
+# d_e5 = 
+# d_e6 = 
+# d_mu4 = 
+# d_mu5 = 
+# d_mu6 = 
+# d_tau4 = 
+# d_tau5 = 
+# d_tau6 = 
+# d_44 = 
+# d_45 = 
+# d_46 = 
+# d_55 = 
+# d_56 = 
+# d_66 = 
+# ceV = 
+# ceA = 
+# cuV = 
+# cuA = 
+# cdV = 
+# cdA = 
+# deV = 
+# deA = 
+# duV = 
+# duA = 
+# ddV = 
+# ddA = 
+# deS = 
+# deP = 
+# duS = 
+# duP = 
+# ddS = 
+# ddP = 
+# cprotonV = 
+# cneutronV = 
+# cprotonA = 
+# cneutronA = 
+# dprotonV = 
+# dneutronV = 
+# dprotonA = 
+# dneutronA = 
+# dprotonS = 
+# dneutronS = 
+# dprotonP = 
+# dneutronP = 
