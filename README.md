@@ -37,7 +37,7 @@ If you experience any problems or bugs, either open a new issue or contact <mhos
 
 Required dependencies:
 
-- [Python](http://www.python.org/) 3.7 or above
+- [Python](http://www.python.org/) 3.7 - 3.10
 - [NumPy](http://www.numpy.org/)
 
 The following dependencies (if missing) will be automatically installed during the main installation of the package:
