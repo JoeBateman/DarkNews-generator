@@ -160,6 +160,7 @@ cython_debug/
 
 # Data directories: where generations go
 examples/data/
+examples_old/data/
 
 # Jaime directory and notebook
 analysis_jaime/
