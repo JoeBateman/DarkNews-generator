@@ -2,6 +2,8 @@
 plots/*
 examples/plots/*
 examples/test_*
+examples_old/plots/*
+examples_old/test_*
 test_script_*
 examples/microboone_study.ipynb
 
