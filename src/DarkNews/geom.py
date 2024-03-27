@@ -196,9 +196,10 @@ zend_c = 305.624305042
 h = r_c * (1.0 - ctheta_c)
 cap_gap = 0.37361008
 
-# Parameters from Mark -- neutrino time spill, overlapping w Genie BNB
-MicroBooNEGlobalTimeOffset = 3125.0
-MicroBooNERandomTimeOffset = 1600.0
+# Parameters from Mark -- neutrino time spill, overlapping w Genie BNB 
+
+MicroBooNEGlobalTimeOffset = 3125.0 # ns, 2 times time for light to travel from BNB target to detector
+MicroBooNERandomTimeOffset = 1600.0 # ns, booster batch length. From docdb 28382 for the BNB
 
 # @dataclass
 # class MiniBooNE:
