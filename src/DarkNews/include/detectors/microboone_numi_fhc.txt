@@ -1,5 +1,5 @@
 # MicroBooNE (Wire-Cell PRD https://arxiv.org/abs/2110.13978)
-name = "microboone"
+name = "microboone_fhc"
 fluxfile = "MicroBooNE_NUMI_FHC_fullflux.txt" # Currently implemented using BNB data for comparison with default implementation
 flux_norm = 1.0/1.0 #for BNB, for NuMI: 1.0/0.01 # units in file are nu/POT/bin/cm2, with bin size 50 MeV.
 erange = [

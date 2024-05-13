@@ -168,5 +168,18 @@ examples_old/data/
 analysis_jaime/
 muboone_analysis.ipynb
 
+# Example folders and test files
+ToyAnalysis/
+BNB_angle_energy_normalization.dat
+BNB_energy_distances.dat
+# gen_numi_files.ipynb
+NuMI_angle_energy_normalization.dat
+NuMI_angle_flux.dat
+NuMI_energy_distances.dat
+output_uboone_fhc_run0_set1.root
+output_uboone_fhc_run0_merged.root
+# ub_NuMI_geom.ipynb
+
 # __TEST files
 **/__TEST*.py
+
