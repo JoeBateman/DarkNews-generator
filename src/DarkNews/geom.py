@@ -201,6 +201,11 @@ cap_gap = 0.37361008
 MicroBooNEGlobalTimeOffset = 3125.0 # ns, 2 times time for light to travel from BNB target to detector
 MicroBooNERandomTimeOffset = 1600.0 # ns, booster batch length. From docdb 28382 for the BNB
 
+
+# As defined in uboone docdb 12290
+uBNuMIGlobalTimeOffset = 4687.5
+uBNuMIRandomTimeOffset = 9600
+
 # @dataclass
 # class MiniBooNE:
 # geometry of cone_MB for dirt
@@ -713,7 +718,7 @@ def sbnd_dirt_geometry(df):
     # Compute the mean position where the pions decayed
     n_ebins = 99
     E_nu = df["P_projectile","0"].values
-    e_bins = np.searchsorted(BNB_energy_nu_bins, E_nu, side='right')-1
+    e_bins = np.searchsorted(BNB_energy_nu_bins, E_nu, side='right')-1  # This gets the index of the bin where the energy is closest to the value, but smaller.
     if (n_ebins in e_bins):
         mask = e_bins >= n_ebins
         e_bins[mask] = n_ebins - 1
